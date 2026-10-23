@@ -39,7 +39,7 @@ MODEL_NAME = {"clam_sb": "CLAM-SB", "clam_mb": "CLAM-MB", "abmil": "ABMIL", "max
               "meanpool": "Mean-pool", "shortcut_lr": "Shortcut (colour/size, LR)",
               "shortcut_rf": "Shortcut (colour/size, RF)"}
 ENCODER_NAME = {"resnet50_trunc": "ResNet50 (ImageNet)", "phikon": "Phikon (pathology)",
-                "phikon_v2": "Phikon-v2", "uni_v1": "UNI", "uni2_h": "UNI2-h (pathology)"}
+                "phikon_v2": "Phikon-v2", "uni_v1": "UNI (pathology)", "uni2_h": "UNI2-h (pathology)"}
 
 plt.rcParams.update({
     "figure.facecolor": SURFACE, "axes.facecolor": SURFACE, "savefig.facecolor": SURFACE,

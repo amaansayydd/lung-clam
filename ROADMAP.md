@@ -13,7 +13,8 @@
 
 - ✅ **Pipeline built end to end:** manifest, streaming extraction, splits, training (5 models), evaluation with CIs, shortcut detector, heatmaps, figures, Colab notebook, leakage tests. Tested on a Python 3.10 Mac environment and a Python 3.12 / NumPy 2 / pandas 3 environment that mimics Colab.
 - 🔁 **Plan change: extraction moves to Colab.** The home connection downloads IDC data at only about 0.4–3 MB/s (262 GB would take days). On Colab, IDC is a datacenter hop away, and the T4 GPU encodes faster.
-- 📉 **Smaller than estimated:** CPTAC slides average about 1,500 patches (not 6–10k), so features for all 570 slides are about 4–5 GB.
+- 📏 **Real sizes (from the Colab run):** median 3,654 / mean 5,460 patches per slide (max 34,652), so about 3.1M patches. Features take about 12 GB for ResNet50 + Phikon. The T4 runs about 250 patches/s, about 2 slides/min, so roughly 4.5 h for all 570 slides.
+- 🧠 **UNI:** use UNI v1 (ViT-L), about 3–4 h extra on a T4. UNI2-h (ViT-H) would take 10+ h.
 - ⏭️ **Next:** run the notebook (extraction → `core` → `ablations` → `label_efficiency`), review QC thumbnails, then write up the results.
 
 ---

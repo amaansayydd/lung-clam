@@ -35,9 +35,29 @@ md("## 1 · Settings")
 code("""
 STORAGE = "drive"          # "drive": survives disconnects (recommended) · "local": Colab disk only, zip at the end
 DRIVE_FOLDER = "lung_clam_data"
-ENCODERS = ["resnet50_trunc", "phikon"]   # add "uni2_h" only if your Hugging Face account has UNI2 access
+ENCODERS = ["resnet50_trunc", "phikon"]   # add "uni_v1" once the UNI check below says ACCESS GRANTED
 RUN_EXTRACTION = True
-EXPERIMENT_GROUPS = ["core", "ablations", "label_efficiency"]   # see scripts/run_experiments.py
+EXPERIMENT_GROUPS = ["core", "ablations", "label_efficiency"]   # add "uni" after UNI features exist
+""")
+
+md("""
+### Optional: check UNI access
+Needs a Hugging Face **Read** token saved in Colab Secrets (🔑 in the left bar) as `HF_TOKEN`, with *Notebook access* switched on, plus approved access on the UNI model page.
+""")
+code("""
+import os
+from huggingface_hub import HfApi, hf_hub_download
+try:
+    from google.colab import userdata
+    os.environ["HF_TOKEN"] = userdata.get("HF_TOKEN")
+    print("Hugging Face user:", HfApi().whoami()["name"])
+    for repo in ["MahmoodLab/UNI", "MahmoodLab/UNI2-h"]:
+        try:
+            hf_hub_download(repo, "config.json"); print(f"{repo}: ACCESS GRANTED")
+        except Exception as e:
+            print(f"{repo}: no access yet ({type(e).__name__})")
+except Exception as e:
+    print("No usable HF_TOKEN secret:", type(e).__name__, e)
 """)
 
 md("## 2 · GPU, storage and code")

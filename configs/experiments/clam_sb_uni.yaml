@@ -1,0 +1,3 @@
+# CLAM-SB on UNI (v1, ViT-L/16) features (gated model: needs Hugging Face access + HF_TOKEN)
+encoder: uni_v1
+model: clam_sb

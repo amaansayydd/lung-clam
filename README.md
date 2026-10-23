@@ -36,7 +36,7 @@ IDC (cloud) ──▶ download one slide ──▶ tissue segmentation (CLAM) �
 features ──▶ CLAM / baselines (5 patient-level folds) ──▶ metrics + bootstrap CIs ──▶ heatmaps
 ```
 
-- **Streaming:** raw slides are only on disk while they're processed, so the 262 GB dataset needs a few GB of free space.
+- **Streaming:** raw slides are only on disk while they're processed, so the 262 GB dataset needs a few GB of local disk (features: ~12 GB for 3.1M patches).
 - **Resolution-independent patches:** every patch covers 128 µm whatever the scan resolution (256 px at 20×, 512 px at 40×), resized to 224 px on the GPU.
 - **Resumable:** each step skips work whose output already exists.
 
@@ -44,7 +44,7 @@ features ──▶ CLAM / baselines (5 patient-level folds) ──▶ metrics + 
 
 ### On Google Colab (recommended for the heavy steps)
 
-Open [`notebooks/lung_clam_colab.ipynb`](https://colab.research.google.com/github/amaansayydd/lung-clam/blob/main/notebooks/lung_clam_colab.ipynb) in Colab, select a **T4 GPU**, and choose **Run all**. It stores about 4–5 GB in Google Drive and continues where it stopped if Colab disconnects.
+Open [`notebooks/lung_clam_colab.ipynb`](https://colab.research.google.com/github/amaansayydd/lung-clam/blob/main/notebooks/lung_clam_colab.ipynb) in Colab, select a **T4 GPU**, and choose **Run all**. It stores about 12 GB in Google Drive (about 18 GB with UNI) and continues where it stopped if Colab disconnects.
 
 ### Locally (macOS with Apple Silicon, or Linux)
 
