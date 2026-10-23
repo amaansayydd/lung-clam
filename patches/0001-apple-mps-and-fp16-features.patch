@@ -1,0 +1,183 @@
+diff --git a/create_heatmaps.py b/create_heatmaps.py
+index e487509..953a74b 100644
+--- a/create_heatmaps.py
++++ b/create_heatmaps.py
+@@ -30,7 +30,7 @@ parser.add_argument('--save_exp_code', type=str, default=None,
+ parser.add_argument('--overlap', type=float, default=None)
+ parser.add_argument('--config_file', type=str, default="heatmap_config_template.yaml")
+ args = parser.parse_args()
+-device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
++device=torch.device("cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu"))
+ 
+ def infer_single_slide(model, features, label, reverse_label_dict, k=1):
+     features = features.to(device)
+@@ -299,7 +299,7 @@ if __name__ == '__main__':
+             file.close()
+ 
+         # load features 
+-        features = torch.load(features_path)
++        features = torch.load(features_path, map_location="cpu").float()
+         process_stack.loc[i, 'bag_size'] = len(features)
+         
+         wsi_object.saveSegmentation(mask_file)
+diff --git a/dataset_modules/dataset_generic.py b/dataset_modules/dataset_generic.py
+index 6ffcd61..2c623ab 100755
+--- a/dataset_modules/dataset_generic.py
++++ b/dataset_modules/dataset_generic.py
+@@ -336,7 +336,7 @@ class Generic_MIL_Dataset(Generic_WSI_Classification_Dataset):
+ 		if not self.use_h5:
+ 			if self.data_dir:
+ 				full_path = os.path.join(data_dir, 'pt_files', '{}.pt'.format(slide_id))
+-				features = torch.load(full_path)
++				features = torch.load(full_path, map_location="cpu").float()  # features may be stored as fp16
+ 				return features, label
+ 			
+ 			else:
+diff --git a/eval.py b/eval.py
+index ba52247..329679b 100755
+--- a/eval.py
++++ b/eval.py
+@@ -44,7 +44,7 @@ parser.add_argument('--drop_out', type=float, default=0.25, help='dropout')
+ parser.add_argument('--embed_dim', type=int, default=1024)
+ args = parser.parse_args()
+ 
+-device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
++device=torch.device("cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu"))
+ 
+ args.save_dir = os.path.join('./eval_results', 'EVAL_' + str(args.save_exp_code))
+ args.models_dir = os.path.join(args.results_dir, str(args.models_exp_code))
+diff --git a/extract_features.py b/extract_features.py
+index 7644890..ec7e5bc 100755
+--- a/extract_features.py
++++ b/extract_features.py
+@@ -17,7 +17,7 @@ from utils.file_utils import save_hdf5
+ from dataset_modules.dataset_h5 import Dataset_All_Bags, Whole_Slide_Bag, get_eval_transforms
+ from models import get_encoder
+ 
+-device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
++device = torch.device("cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu"))
+ 
+ def compute_w_loader(output_path, loader, model, verbose = 0):
+ 	"""
+diff --git a/extract_features_fp.py b/extract_features_fp.py
+index b6dd767..ca50b9a 100644
+--- a/extract_features_fp.py
++++ b/extract_features_fp.py
+@@ -19,7 +19,7 @@ from utils.file_utils import save_hdf5
+ from dataset_modules.dataset_h5 import Dataset_All_Bags, Whole_Slide_Bag_FP
+ from models import get_encoder
+ 
+-device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
++device = torch.device("cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu"))
+ 
+ def compute_w_loader(output_path, loader, model, verbose = 0):
+ 	"""
+diff --git a/main.py b/main.py
+index d085ce9..460966f 100755
+--- a/main.py
++++ b/main.py
+@@ -110,7 +110,7 @@ parser.add_argument('--bag_weight', type=float, default=0.7,
+                     help='clam: weight coefficient for bag-level loss (default: 0.7)')
+ parser.add_argument('--B', type=int, default=8, help='numbr of positive/negative patches to sample for clam')
+ args = parser.parse_args()
+-device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
++device=torch.device("cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu"))
+ 
+ def seed_torch(seed=7):
+     import random
+diff --git a/utils/core_utils.py b/utils/core_utils.py
+index 6fa925b..03dba16 100755
+--- a/utils/core_utils.py
++++ b/utils/core_utils.py
+@@ -9,7 +9,7 @@ from sklearn.preprocessing import label_binarize
+ from sklearn.metrics import roc_auc_score, roc_curve
+ from sklearn.metrics import auc as calc_auc
+ 
+-device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
++device=torch.device("cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu"))
+ 
+ class Accuracy_Logger(object):
+     """Accuracy logger"""
+@@ -117,8 +117,8 @@ def train(datasets, cur, args):
+     if args.bag_loss == 'svm':
+         from topk.svm import SmoothTop1SVM
+         loss_fn = SmoothTop1SVM(n_classes = args.n_classes)
+-        if device.type == 'cuda':
+-            loss_fn = loss_fn.cuda()
++        loss_fn = loss_fn.to(device)
++        loss_fn.get_losses()  # smooth-topk binds its label buffer at build time; rebuild after moving device
+     else:
+         loss_fn = nn.CrossEntropyLoss()
+     print('Done!')
+@@ -141,8 +141,8 @@ def train(datasets, cur, args):
+         if args.inst_loss == 'svm':
+             from topk.svm import SmoothTop1SVM
+             instance_loss_fn = SmoothTop1SVM(n_classes = 2)
+-            if device.type == 'cuda':
+-                instance_loss_fn = instance_loss_fn.cuda()
++            instance_loss_fn = instance_loss_fn.to(device)
++            instance_loss_fn.get_losses()  # see above
+         else:
+             instance_loss_fn = nn.CrossEntropyLoss()
+         
+@@ -196,7 +196,7 @@ def train(datasets, cur, args):
+             break
+ 
+     if args.early_stopping:
+-        model.load_state_dict(torch.load(os.path.join(args.results_dir, "s_{}_checkpoint.pt".format(cur))))
++        model.load_state_dict(torch.load(os.path.join(args.results_dir, "s_{}_checkpoint.pt".format(cur)), map_location=device))
+     else:
+         torch.save(model.state_dict(), os.path.join(args.results_dir, "s_{}_checkpoint.pt".format(cur)))
+ 
+diff --git a/utils/eval_utils.py b/utils/eval_utils.py
+index 09a4844..d770dfb 100755
+--- a/utils/eval_utils.py
++++ b/utils/eval_utils.py
+@@ -14,8 +14,10 @@ from sklearn.metrics import roc_auc_score, roc_curve, auc
+ from sklearn.preprocessing import label_binarize
+ import matplotlib.pyplot as plt
+ 
+-def initiate_model(args, ckpt_path, device='cuda'):
+-    print('Init Model')    
++def initiate_model(args, ckpt_path, device=None):
++    print("Init Model")
++    if device is None:
++        device = globals()["device"]
+     model_dict = {"dropout": args.drop_out, 'n_classes': args.n_classes, "embed_dim": args.embed_dim}
+     
+     if args.model_size is not None and args.model_type in ['clam_sb', 'clam_mb']:
+@@ -33,7 +35,7 @@ def initiate_model(args, ckpt_path, device='cuda'):
+ 
+     print_network(model)
+ 
+-    ckpt = torch.load(ckpt_path)
++    ckpt = torch.load(ckpt_path, map_location="cpu")
+     ckpt_clean = {}
+     for key in ckpt.keys():
+         if 'instance_loss_fn' in key:
+diff --git a/utils/utils.py b/utils/utils.py
+index df3b7e0..fb34927 100755
+--- a/utils/utils.py
++++ b/utils/utils.py
+@@ -15,7 +15,7 @@ import torch.nn.functional as F
+ import math
+ from itertools import islice
+ import collections
+-device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
++device=torch.device("cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu"))
+ 
+ class SubsetSequentialSampler(Sampler):
+ 	"""Samples elements sequentially from a given list of indices, without replacement.
+diff --git a/vis_utils/heatmap_utils.py b/vis_utils/heatmap_utils.py
+index ef4f938..1c6ff07 100644
+--- a/vis_utils/heatmap_utils.py
++++ b/vis_utils/heatmap_utils.py
+@@ -20,7 +20,7 @@ from scipy.stats import percentileofscore
+ from utils.constants import MODEL2CONSTANTS
+ from tqdm import tqdm
+ 
+-device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
++device=torch.device("cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu"))
+ 
+ def score2percentile(score, ref):
+     percentile = percentileofscore(ref, score)

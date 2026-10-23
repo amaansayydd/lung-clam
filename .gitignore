@@ -1,0 +1,21 @@
+# environment
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.DS_Store
+.env
+
+# data lives on the external drive (data/ is a symlink to it)
+data
+*.svs
+*.dcm
+*.tif
+*.tiff
+*.ndpi
+*.mrxs
+
+# heavy outputs; only small tables and figures under results/ are committed
+results/**/*.pt
+results/**/*.h5
+runs/

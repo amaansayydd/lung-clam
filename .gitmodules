@@ -1,0 +1,4 @@
+[submodule "CLAM"]
+	path = CLAM
+	url = https://github.com/mahmoodlab/CLAM.git
+	ignore = dirty
