@@ -28,7 +28,9 @@ Runs the heavy parts of [lung-clam](https://github.com/amaansayydd/lung-clam) on
 
 **Before you start:** Runtime → Change runtime type → **T4 GPU**. Then Runtime → **Run all**.
 
-Everything is saved to Google Drive (`MyDrive/lung_clam_data`, about 4–5 GB), and every step skips work that is already done. If Colab disconnects, reconnect and **Run all** again; it continues where it stopped.
+Everything is saved to Google Drive (`MyDrive/lung_clam_data`, about 12 GB), and every step skips work that is already done. If Colab disconnects, reconnect and **Run all** again; it continues where it stopped.
+
+**Keeping the free tier connected:** free Colab disconnects a tab that looks idle (often after about 90 minutes), well before its 5-hour limit. Keep the tab open and the computer awake and plugged in, and click into the notebook now and then. With Colab Pro, runs continue in the background.
 """)
 
 md("## 1 · Settings")

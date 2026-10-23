@@ -8,6 +8,7 @@ __pycache__/
 
 # data lives on the external drive (data/ is a symlink to it)
 data
+data_train
 *.svs
 *.dcm
 *.tif
