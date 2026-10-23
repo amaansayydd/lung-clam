@@ -45,6 +45,11 @@ from lungclam.encoders import ENCODER_DIMS  # noqa: E402
 paths.add_clam_to_path()
 import utils.core_utils as core_utils  # noqa: E402
 import utils.eval_utils as eval_utils  # noqa: E402
+import utils.utils as clam_utils  # noqa: E402
+
+if os.environ.get("LUNGCLAM_DEVICE"):  # e.g. "cpu": on Apple Silicon the CPU beats MPS for these small MIL models
+    for _mod in (core_utils, eval_utils, clam_utils):
+        _mod.device = torch.device(os.environ["LUNGCLAM_DEVICE"])
 from dataset_modules.dataset_generic import Generic_MIL_Dataset  # noqa: E402
 from lungclam.models import MeanPoolMIL  # noqa: E402
 
