@@ -74,10 +74,10 @@ Most CLAM projects run the tutorial on TCGA and report one AUC. This one aims to
 ### 3.2 Verification checks (Phase 0, before any compute)
 
 - [x] CPTAC normal slides exist (Oct 23: 743 slides from ~420 patients; see docs/data_findings.md).
-- [ ] Their **preparation type matches** the tumor slides. Not recorded in DICOM, so check visually in the pilot. Note: the README of the CLAM repo ships a CPTAC lung heatmap demo, which is a good sign.
+- [~] Their **preparation type matches** the tumor slides. Not recorded in DICOM. Oct 23: 3 slides look FFPE; re-check all 30 in the pilot. Note: the README of the CLAM repo ships a CPTAC lung heatmap demo, which is a good sign.
 - [x] (Oct 23: `primaryAnatomicStructureModifier`, `embeddingMedium`, `min_PixelSpacing_2sf`) Find the IDC `sm_index` columns that encode tissue type (tumor/normal), anatomic site, pixel spacing (MPP) and patient ID.
-- [ ] Confirm `openslide` 4.x opens IDC DICOM slides (by pointing at one `.dcm` file of a series). If it doesn't, the fallbacks are `wsidicom`, TCIA SVS files, or converting to pyramidal TIFF.
-- [ ] Record each slide's scan magnification and MPP. CPTAC and TCGA mix 20× and 40× scans.
+- [x] (Oct 23: yes, OpenSlide 4.0.1 reads IDC DICOM directly) Confirm `openslide` 4.x opens IDC DICOM slides (by pointing at one `.dcm` file of a series). If it doesn't, the fallbacks are `wsidicom`, TCIA SVS files, or converting to pyramidal TIFF.
+- [x] (Oct 23: `mpp`, `magnification`, `patch_px` columns in the manifest) Record each slide's scan magnification and MPP. CPTAC and TCGA mix 20× and 40× scans.
 
 **Decision rule:** if CPTAC normals turn out to be prepared differently from the CPTAC tumors, stop and re-plan. The fallback is to train on CPTAC tumors only for subtyping, and treat "normal" as a separate, explicitly caveated experiment.
 

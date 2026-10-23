@@ -25,3 +25,34 @@ Produced by `scripts/00_explore_idc.py`; metadata only.
 - **TCGA normals are 100% frozen**, while TCGA diagnostic tumor slides are FFPE. This confirms that TCGA normals must stay out of the main results.
 - TCGA DX slides are 40× (0.25 µm/px) and CPTAC slides are 20× (0.49 µm/px). Patch size has to be MPP-driven: 512 px at 40× and 256 px at 20×, both covering about 128 µm.
 - Average slide size is about 0.35–0.45 GB (CPTAC) and about 0.8 GB (TCGA DX). The ~570-slide subset means streaming about 280 GB in total.
+
+## 2026-10-23: format and preparation check (3 CPTAC slides)
+
+- **OpenSlide 4.0.1 opens IDC DICOM directly.** Point it at any `.dcm` file in the series.
+  - Pyramids have 3–4 levels (1×, 4×, 16×, 32×), and MPP and objective (20×) are read correctly.
+  - The first tile read on a fresh file takes about 2–3 s; after that, 500–860 tiles/s. The encoder (about 170 patches/s) is the bottleneck, not I/O.
+- **Preparation looks like FFPE for tumor *and* normal.** Crops are in `results/pilot/*_20x_crops.jpg`.
+  - Nuclear detail is crisp, with no ice-crystal vacuoles.
+  - LSCC (C3L-05417) shows squamous nests; LUAD (C3N-00574) is mucinous adenocarcinoma; Normal (C3N-01416) shows alveolar parenchyma.
+  - This is a non-expert check on 3 slides. Re-check on all 30 pilot slides, then have the pathologist confirm.
+- **Things to watch:**
+  - The normal slide is much more eosinophilic (redder) than the tumors. That could be biology or a stain batch effect, which the shortcut detector (ROADMAP §6.4) will test.
+  - The normal slide's thumbnail shows a dense purple region at one edge. Normal-adjacent slides may contain some tumor (label noise).
+  - Some slides hold several serial sections of the same tissue (C3L-05417 has 3), so near-duplicate patches are expected.
+- **No hospital/site field in the CPTAC clinical data.** Only the TCGA site code is available, for the external test.
+- **Clinical diagnosis exists for 111 LUAD and 108 LSCC CPTAC patients**, and all of them match their cohort. These patients are flagged `label_verified` and sampled first.
+
+## 2026-10-23: manifest v1 (`scripts/01_build_manifest.py`, seed 42)
+
+| Group | Label | Slides (= patients) | Verified | Pilot | GB |
+|---|---|---|---|---|---|
+| CPTAC | LUAD | 150 | 107 | 10 | 53 |
+| CPTAC | LUSC | 150 | 108 | 10 | 53 |
+| CPTAC | Normal (75 from LUAD patients + 75 from LSCC patients) | 150 | 150 | 10 | 41 |
+| TCGA external | LUAD | 60 | — | — | 60 |
+| TCGA external | LUSC | 60 | — | — | 55 |
+
+- 570 slides from 420 patients, 262 GB to stream.
+- **Every normal slide comes from a patient whose tumor slide is also in the set.**
+- The external test spans 68 TCGA hospitals.
+- Patch size is set per slide to a constant 128 µm: 256 px at 0.5 µm/px and 512 px at 0.25 µm/px (plus 4 slides at 560 px and 1 at 400 px).
