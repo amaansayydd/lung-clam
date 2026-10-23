@@ -127,6 +127,8 @@ def main():
     ap.add_argument("--folds", nargs="+", type=int, help="override which folds to run")
     ap.add_argument("--with-test", action="store_true", help="also predict the sealed internal test set")
     ap.add_argument("--overwrite", action="store_true", help="retrain folds that already have predictions")
+    ap.add_argument("--predict-only", action="store_true",
+                    help="no training: re-score existing checkpoints (e.g. once external slides have features)")
     args = ap.parse_args()
 
     cfg = load_config(args.config, args.set)
@@ -150,7 +152,11 @@ def main():
         external = make_dataset(ext_tbl, cfg["encoder"], seed) if len(pd.read_csv(ext_tbl)) else None
         for k in cfg["folds"]:
             out = seed_dir / f"preds_fold{k}.csv"
-            if out.exists() and not args.overwrite:
+            ckpt = seed_dir / f"s_{k}_checkpoint.pt"
+            if args.predict_only and not ckpt.exists():
+                print(f"  seed {seed} fold {k}: no checkpoint to re-score, skipping")
+                continue
+            if out.exists() and not (args.overwrite or args.predict_only):
                 print(f"  seed {seed} fold {k}: already done, skipping")
                 continue
             seed_everything(seed)
@@ -161,10 +167,11 @@ def main():
             print(f"  seed {seed} fold {k}: train {len(train)}, val {len(val)}, test {len(test)} (sealed)")
             t0 = time.time()
             ca = clam_args(cfg, seed_dir)
-            # CLAM evaluates and prints its third split at the end of training; give it the
-            # validation set so the internal test set is never looked at during development.
-            core_utils.train((train, val, val), k, ca)
-            model = eval_utils.initiate_model(ca, str(seed_dir / f"s_{k}_checkpoint.pt"))
+            if not args.predict_only:
+                # CLAM evaluates and prints its third split at the end of training; give it the
+                # validation set so the internal test set is never looked at during development.
+                core_utils.train((train, val, val), k, ca)
+            model = eval_utils.initiate_model(ca, str(ckpt))
             preds = [predict(model, val, "val")]
             if args.with_test and len(test):
                 preds.append(predict(model, test, "test"))

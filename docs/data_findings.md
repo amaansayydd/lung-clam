@@ -56,3 +56,13 @@ Produced by `scripts/00_explore_idc.py`; metadata only.
 - **Every normal slide comes from a patient whose tumor slide is also in the set.**
 - The external test spans 68 TCGA hospitals.
 - Patch size is set per slide to a constant 128 µm: 256 px at 0.5 µm/px and 512 px at 0.25 µm/px (plus 4 slides at 560 px and 1 at 400 px).
+
+## 2026-10-23: QC on the first 146 slides processed on Colab
+
+- **Patches per slide:** median 3,654 and mean 5,460, up to 34,652 (C3L-00445-26: two large serial sections, 537 mm²). Features for the full set are about 12 GB (ResNet50 + Phikon, fp16).
+- **Segmentation** looks correct on spot checks. On a few slides, thin outlines along the coverslip edge and the scanner's "+" fiducial marks are segmented too, but they add only a handful of edge patches.
+- **Colour differs by class.** Median tissue saturation is 55 (Normal) vs 81 (LUAD) vs 85 (LUSC), and median red channel is 209 vs 181 vs 167.
+  - Part of this is biology: normal lung is mostly air spaces, so it's paler.
+  - Part may be stain batch, e.g. patient C3L-02168's normal and tumour slides are both very dark.
+  - The shortcut detector (`scripts/40_shortcut_baseline.py`) measures how much of the label this alone gives away.
+- **Flagged for the pathologist review:** C3L-02168-25 (normal, very dark, dense) as possible label noise.
