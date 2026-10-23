@@ -73,8 +73,8 @@ Most CLAM projects run the tutorial on TCGA and report one AUC. This one aims to
 
 ### 3.2 Verification checks (Phase 0, before any compute)
 
-- [ ] Confirm the CPTAC normal slides exist and that their **preparation type matches** the tumor slides. Note: the README of the CLAM repo ships a CPTAC lung heatmap demo, which is a good sign.
-- [ ] Find the IDC `sm_index` columns that encode tissue type (tumor/normal), anatomic site, pixel spacing (MPP) and patient ID.
+- [x] (Oct 23: 743 normal slides from ~420 patients; see docs/data_findings.md) Confirm the CPTAC normal slides exist and that their **preparation type matches** the tumor slides. Note: the README of the CLAM repo ships a CPTAC lung heatmap demo, which is a good sign.
+- [x] (Oct 23: `primaryAnatomicStructureModifier`, `embeddingMedium`, `min_PixelSpacing_2sf`) Find the IDC `sm_index` columns that encode tissue type (tumor/normal), anatomic site, pixel spacing (MPP) and patient ID.
 - [ ] Confirm `openslide` 4.x opens IDC DICOM slides (by pointing at one `.dcm` file of a series). If it doesn't, the fallbacks are `wsidicom`, TCIA SVS files, or converting to pyramidal TIFF.
 - [ ] Record each slide's scan magnification and MPP. CPTAC and TCGA mix 20× and 40× scans.
 
