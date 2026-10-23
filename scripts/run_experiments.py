@@ -14,6 +14,7 @@ GROUPS = {
     "ablations": ["clam_mb_phikon", "abmil_phikon", "maxmil_phikon"],
     "label_efficiency": [f"{m}_phikon_lf{f}" for f in (10, 25, 50) for m in ("clam_sb", "abmil", "meanpool")],
 }
+GROUPS["uni"] = ["clam_sb_uni2", "meanpool_uni2"]  # only after UNI2-h features exist (gated model)
 GROUPS["all"] = GROUPS["core"] + GROUPS["ablations"] + GROUPS["label_efficiency"]
 
 

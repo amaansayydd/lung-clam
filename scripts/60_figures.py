@@ -34,12 +34,12 @@ _spec.loader.exec_module(ev)
 # validated reference palette (dataviz skill): first three categorical slots pass all-pairs CVD checks
 SURFACE, INK, INK2, GRID = "#fcfcfb", "#0b0b0b", "#52514e", "#e6e5e1"
 SERIES = ["#2a78d6", "#eb6834", "#1baf7a"]
-ENCODER_COLOR = {"resnet50_trunc": SERIES[0], "phikon": SERIES[1], "phikon_v2": SERIES[2], "uni_v1": SERIES[2]}
+ENCODER_COLOR = {"resnet50_trunc": SERIES[0], "phikon": SERIES[1], "phikon_v2": SERIES[2], "uni_v1": SERIES[2], "uni2_h": SERIES[2]}
 MODEL_NAME = {"clam_sb": "CLAM-SB", "clam_mb": "CLAM-MB", "abmil": "ABMIL", "maxmil": "Max-pool MIL",
               "meanpool": "Mean-pool", "shortcut_lr": "Shortcut (colour/size, LR)",
               "shortcut_rf": "Shortcut (colour/size, RF)"}
 ENCODER_NAME = {"resnet50_trunc": "ResNet50 (ImageNet)", "phikon": "Phikon (pathology)",
-                "phikon_v2": "Phikon-v2", "uni_v1": "UNI"}
+                "phikon_v2": "Phikon-v2", "uni_v1": "UNI", "uni2_h": "UNI2-h (pathology)"}
 
 plt.rcParams.update({
     "figure.facecolor": SURFACE, "axes.facecolor": SURFACE, "savefig.facecolor": SURFACE,

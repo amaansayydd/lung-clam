@@ -1,0 +1,3 @@
+# Mean of UNI2-h patch embeddings, no attention
+encoder: uni2_h
+model: meanpool
