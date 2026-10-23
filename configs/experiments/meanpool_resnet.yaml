@@ -1,0 +1,3 @@
+# Mean of patch embeddings, no attention, ResNet50 features
+encoder: resnet50_trunc
+model: meanpool

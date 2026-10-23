@@ -21,10 +21,21 @@ index e487509..953a74b 100644
          
          wsi_object.saveSegmentation(mask_file)
 diff --git a/dataset_modules/dataset_generic.py b/dataset_modules/dataset_generic.py
-index 6ffcd61..2c623ab 100755
+index 6ffcd61..0c65ff5 100755
 --- a/dataset_modules/dataset_generic.py
 +++ b/dataset_modules/dataset_generic.py
-@@ -336,7 +336,7 @@ class Generic_MIL_Dataset(Generic_WSI_Classification_Dataset):
+@@ -115,9 +115,7 @@ class Generic_WSI_Classification_Dataset(Dataset):
+ 		mask = data['label'].isin(ignore)
+ 		data = data[~mask]
+ 		data.reset_index(drop=True, inplace=True)
+-		for i in data.index:
+-			key = data.loc[i, 'label']
+-			data.at[i, 'label'] = label_dict[key]
++		data['label'] = data['label'].map(label_dict).astype(int)  # vectorized: pandas 3 forbids int into str column
+ 
+ 		return data
+ 
+@@ -336,7 +334,7 @@ class Generic_MIL_Dataset(Generic_WSI_Classification_Dataset):
  		if not self.use_h5:
  			if self.data_dir:
  				full_path = os.path.join(data_dir, 'pt_files', '{}.pt'.format(slide_id))

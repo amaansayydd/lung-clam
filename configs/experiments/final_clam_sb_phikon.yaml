@@ -1,0 +1,4 @@
+# Final pre-registered model: CLAM-SB on Phikon, 3 seeds; run with --with-test
+encoder: phikon
+model: clam_sb
+seeds: [1, 2, 3]

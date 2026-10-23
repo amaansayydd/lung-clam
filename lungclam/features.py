@@ -1,7 +1,7 @@
 """Feature extraction: read every patch once, run it through one or more encoders.
 
 Patches are read with a thread pool (OpenSlide handles are thread-safe and release the GIL
-while decoding), preprocessed once, and fed to every requested encoder. Features are stored
+while decoding), resized and normalized once on the GPU, and fed to every requested encoder. Features are stored
 as fp16 `.pt` files in CLAM's layout (`<encoder>/pt_files/<slide_id>.pt`); patch coordinates
 stay in the CLAM patch `.h5` file, row-aligned with the features.
 """
@@ -13,7 +13,7 @@ import h5py
 import numpy as np
 import torch
 
-from .encoders import preprocess
+from .encoders import to_model_input
 
 
 def _batches(n: int, size: int):
@@ -28,10 +28,9 @@ def extract(slide, h5_path: Path, encoders: dict[str, torch.nn.Module], out_path
         coords = f["coords"][:]
         patch_px = int(f["coords"].attrs["patch_size"])
         level = int(f["coords"].attrs["patch_level"])
-    tf = preprocess()
-
     def load(c):
-        return tf(slide.read_region((int(c[0]), int(c[1])), level, (patch_px, patch_px)).convert("RGB"))
+        rgba = np.asarray(slide.read_region((int(c[0]), int(c[1])), level, (patch_px, patch_px)))
+        return torch.from_numpy(np.ascontiguousarray(rgba[..., :3]))
 
     feats = {name: [] for name in encoders}
     t0, t_model = time.time(), 0.0
@@ -59,7 +58,7 @@ def extract(slide, h5_path: Path, encoders: dict[str, torch.nn.Module], out_path
 
 @torch.inference_mode()
 def _run(images_iter, encoders, feats, device) -> float:
-    batch = torch.stack(list(images_iter)).to(device, non_blocking=True)
+    batch = to_model_input(torch.stack(list(images_iter)), device)
     if device.type != "cpu":
         batch = batch.half()  # fp16 compute: ~25% faster on MPS, features identical (cosine 1.0000)
     t = time.time()

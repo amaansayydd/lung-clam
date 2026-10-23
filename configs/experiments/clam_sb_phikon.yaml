@@ -1,0 +1,3 @@
+# CLAM-SB on Phikon (pathology foundation model) features
+encoder: phikon
+model: clam_sb

@@ -1,0 +1,3 @@
+# Instance classifier + max pooling (CLAM's 'mil' baseline)
+encoder: phikon
+model: maxmil

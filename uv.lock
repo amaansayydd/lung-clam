@@ -682,7 +682,7 @@ requires-dist = [
     { name = "huggingface-hub", specifier = ">=0.24" },
     { name = "idc-index", specifier = ">=0.11" },
     { name = "matplotlib", specifier = ">=3.8" },
-    { name = "numpy", specifier = "<2" },
+    { name = "numpy", specifier = ">=1.26" },
     { name = "opencv-python-headless", specifier = ">=4.9" },
     { name = "openslide-bin", specifier = ">=4.0" },
     { name = "openslide-python", specifier = ">=1.4" },

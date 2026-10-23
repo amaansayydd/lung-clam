@@ -17,7 +17,7 @@ DATA_ROOT = Path(os.environ.get("LUNGCLAM_DATA", ROOT / "data"))
 MANIFEST = ROOT / "manifests" / "slides.csv"
 SPLITS_DIR = ROOT / "splits"
 CONFIGS = ROOT / "configs"
-RESULTS = ROOT / "results"            # small, committed: tables, figures
+RESULTS = Path(os.environ.get("LUNGCLAM_RESULTS", ROOT / "results"))  # small, committed: tables, figures
 
 RAW = Path(os.environ.get("LUNGCLAM_RAW", DATA_ROOT / "raw"))  # transient: downloaded DICOM series, deleted after processing
 PATCHES = DATA_ROOT / "patches"       # <slide_id>.h5 with patch coordinates (CLAM format)

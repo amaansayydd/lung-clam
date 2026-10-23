@@ -1,0 +1,3 @@
+# CLAM multi-branch: one attention branch per class
+encoder: phikon
+model: clam_mb

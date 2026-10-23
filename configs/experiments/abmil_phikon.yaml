@@ -1,0 +1,3 @@
+# Gated-attention MIL = CLAM-SB without the instance-clustering loss
+encoder: phikon
+model: abmil

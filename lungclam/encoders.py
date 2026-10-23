@@ -12,7 +12,7 @@ preprocessed batch can be fed to several encoders in a single pass over the slid
 | uni2_h          | MahmoodLab UNI2-h, ViT-H/14 DINOv2     | 1536 | gated on HF         |
 """
 import torch
-from torchvision import transforms
+import torch.nn.functional as F
 
 from .paths import add_clam_to_path
 
@@ -22,13 +22,18 @@ IMAGENET_STD = (0.229, 0.224, 0.225)
 ENCODER_DIMS = {"resnet50_trunc": 1024, "phikon": 768, "phikon_v2": 1024, "uni_v1": 1024, "uni2_h": 1536}
 
 
-def preprocess(size: int = 224) -> transforms.Compose:
-    return transforms.Compose([
-        transforms.Resize(size, interpolation=transforms.InterpolationMode.BICUBIC, antialias=True),
-        transforms.CenterCrop(size),
-        transforms.ToTensor(),
-        transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD),
-    ])
+def to_model_input(patches_uint8: torch.Tensor, device: torch.device, size: int = 224) -> torch.Tensor:
+    """(N, H, W, 3) uint8 patches → (N, 3, size, size) normalized model input, computed on `device`.
+
+    Resizing on the GPU keeps the CPU free for decoding tiles (Colab's free tier has 2 cores).
+    Same torch op on CUDA, MPS and CPU, so features do not depend on where they were made.
+    """
+    x = patches_uint8.to(device, non_blocking=True).permute(0, 3, 1, 2).float().div_(255)
+    if x.shape[-1] != size:
+        x = F.interpolate(x, size=size, mode="bicubic", antialias=True, align_corners=False).clamp_(0, 1)
+    mean = torch.tensor(IMAGENET_MEAN, device=device).view(1, 3, 1, 1)
+    std = torch.tensor(IMAGENET_STD, device=device).view(1, 3, 1, 1)
+    return (x - mean) / std
 
 
 class _HFViTCLS(torch.nn.Module):

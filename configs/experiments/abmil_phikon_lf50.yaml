@@ -1,0 +1,4 @@
+# Label efficiency: 50% of training patients
+encoder: phikon
+model: abmil
+label_frac: 50

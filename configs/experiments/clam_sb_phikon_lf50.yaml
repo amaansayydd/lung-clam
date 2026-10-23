@@ -1,0 +1,4 @@
+# Label efficiency: 50% of training patients
+encoder: phikon
+model: clam_sb
+label_frac: 50

@@ -1,0 +1,4 @@
+# Label efficiency: 10% of training patients
+encoder: phikon
+model: meanpool
+label_frac: 10
