@@ -1,5 +1,8 @@
 """Stream slides through the pipeline: download → segment → patch → features → QC → delete raw.
 
+CPTAC slides are downloaded from NCI Imaging Data Commons (DICOM); TCGA slides from the GDC
+(Aperio .svs), see scripts/02_add_gdc_ids.py.
+
 Raw slides are only on disk while they are being processed (plus one prefetched batch),
 so the whole dataset can be processed with a few GB of free space. Each step is skipped if
 its output already exists, so the script can be stopped and restarted at any time.
@@ -55,14 +58,45 @@ def free_gb(path: Path) -> float:
     return shutil.disk_usage(path).free / 1024 ** 3
 
 
+def download_gdc(row, attempts: int = 3) -> None:
+    """One TCGA .svs from the GDC (open access), checked against the GDC's md5."""
+    import hashlib
+    import requests
+    out_dir = paths.RAW / row.series_uid
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out = out_dir / row.gdc_file_name
+    for attempt in range(1, attempts + 1):
+        md5 = hashlib.md5()
+        try:
+            with requests.get(f"https://api.gdc.cancer.gov/data/{row.gdc_file_id}", stream=True, timeout=120) as r:
+                r.raise_for_status()
+                with open(out, "wb") as f:
+                    for chunk in r.iter_content(1 << 22):
+                        f.write(chunk)
+                        md5.update(chunk)
+            if md5.hexdigest() == row.gdc_md5:
+                return
+            err = f"md5 mismatch for {row.slide_id}"
+        except requests.RequestException as e:
+            err = f"{type(e).__name__}: {e}"
+        print(f"  GDC download attempt {attempt} failed ({err}); retrying", flush=True)
+        time.sleep(10 * attempt)
+    raise RuntimeError(f"GDC download failed for {row.slide_id}: {err}")
+
+
 def download(rows: pd.DataFrame) -> None:
-    from idc_index import IDCClient
     need = rows.size_mb.sum() / 1024
     if free_gb(paths.RAW) - need < SAFETY_GB:
         raise OSError(f"not enough disk for this batch: need {need:.1f} GB + {SAFETY_GB} GB margin, "
                       f"have {free_gb(paths.RAW):.1f} GB free at {paths.RAW}")
-    IDCClient().download_from_selection(seriesInstanceUID=rows.series_uid.tolist(), downloadDir=str(paths.RAW),
-                                        dirTemplate="%SeriesInstanceUID", quiet=True, show_progress_bar=False)
+    from_gdc = rows.source_uri.str.startswith("gdc://")
+    if (~from_gdc).any():
+        from idc_index import IDCClient
+        IDCClient().download_from_selection(seriesInstanceUID=rows[~from_gdc].series_uid.tolist(),
+                                            downloadDir=str(paths.RAW), dirTemplate="%SeriesInstanceUID",
+                                            quiet=True, show_progress_bar=False)
+    for r in rows[from_gdc].itertuples():
+        download_gdc(r)
 
 
 def process(row, encoders: dict, device, keep_raw: bool) -> dict:

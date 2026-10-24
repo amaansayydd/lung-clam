@@ -1,8 +1,10 @@
 """Per-slide processing: open a slide, segment tissue, grid it into patches, save QC images and stats.
 
 Segmentation and patching are CLAM's own (WholeSlideImage). This module only adapts them:
-  * IDC slides are DICOM *series* (a folder of .dcm files, one per pyramid level);
-    OpenSlide 4 opens the whole series from any one file in it.
+  * CPTAC slides come from IDC as DICOM *series* (a folder of .dcm files, one per pyramid
+    level); OpenSlide 4 opens the whole series from any one file in it.
+  * TCGA slides come from the GDC as Aperio .svs files. IDC's DICOM copies of TCGA use
+    JPEG 2000, which OpenSlide's DICOM reader cannot decode.
   * Patch size comes from the manifest (`patch_px`), so every patch covers ~128 µm whatever
     the scan resolution. Patches are later resized to 224 px for the encoders.
 """
@@ -25,11 +27,13 @@ FILTER_PARAMS = dict(a_t=16, a_h=4, max_n_holes=8)
 SEG_TARGET_DOWNSAMPLE = 32
 
 
-def find_slide_file(series_dir: Path) -> Path:
-    files = sorted(series_dir.rglob("*.dcm"))
-    if not files:
-        raise FileNotFoundError(f"no .dcm files under {series_dir}")
-    return files[0]
+def find_slide_file(slide_dir: Path) -> Path:
+    """An Aperio .svs (TCGA, from GDC) or any .dcm of a DICOM series (CPTAC, from IDC)."""
+    for pattern in ("*.svs", "*.dcm"):
+        files = sorted(slide_dir.rglob(pattern))
+        if files:
+            return files[0]
+    raise FileNotFoundError(f"no .svs or .dcm files under {slide_dir}")
 
 
 def open_wsi(series_dir: Path, slide_id: str) -> WholeSlideImage:

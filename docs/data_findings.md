@@ -66,3 +66,10 @@ Produced by `scripts/00_explore_idc.py`; metadata only.
   - Part may be stain batch, e.g. patient C3L-02168's normal and tumour slides are both very dark.
   - The shortcut detector (`scripts/40_shortcut_baseline.py`) measures how much of the label this alone gives away.
 - **Flagged for the pathologist review:** C3L-02168-25 (normal, very dark, dense) as possible label noise.
+
+## 2026-10-24: TCGA slides come from the GDC, not IDC
+
+- **The problem:** every TCGA slide failed on Colab with `OpenSlideError: Reading ...`. IDC's DICOM copies of the TCGA diagnostic slides use **JPEG 2000** (transfer syntax 1.2.840.10008.1.2.4.91), which OpenSlide's DICOM reader cannot decode. CPTAC uses baseline JPEG (…1.2.4.50), which is why all 450 CPTAC slides worked.
+- **The fix:** TCGA slides are now downloaded from the **GDC** as the original Aperio `.svs` files (open access, all 120 found, 107 GB) and checked against the GDC's md5. OpenSlide reads these natively. See `scripts/02_add_gdc_ids.py`.
+- **Checked:** the level-0 dimensions match IDC's (e.g. TCGA-05-5420: 10000 × 8104), so the manifest's resolution and patch size stay valid. One slide went end to end: 816 patches, finite features.
+- **CPTAC extraction is complete:** 450/450 slides with ResNet50 + Phikon features.
