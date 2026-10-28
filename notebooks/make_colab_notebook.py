@@ -71,7 +71,7 @@ print("GPU:", gpu)
 
 if STORAGE == "drive":
     from google.colab import drive
-    drive.mount("/content/drive")
+    drive.mount("/content/drive", force_remount=True, timeout_ms=300_000)  # approve the Google popup; allow pop-ups for colab.research.google.com
     DATA = f"/content/drive/MyDrive/{DRIVE_FOLDER}"
 else:
     DATA = "/content/lung_clam_data"
