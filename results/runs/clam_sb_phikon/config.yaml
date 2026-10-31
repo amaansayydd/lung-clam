@@ -1,0 +1,23 @@
+encoder: phikon
+model: clam_sb
+label_frac: 100
+folds:
+- 0
+- 1
+- 2
+- 3
+- 4
+seeds:
+- 1
+lr: 0.0002
+reg: 1.0e-05
+drop_out: 0.25
+max_epochs: 200
+early_stopping: true
+weighted_sample: true
+bag_weight: 0.7
+B: 8
+inst_loss: svm
+model_size: small
+opt: adam
+name: clam_sb_phikon
