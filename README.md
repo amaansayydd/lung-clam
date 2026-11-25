@@ -3,7 +3,7 @@
 Weakly supervised **Normal / LUAD / LUSC** classification of lung whole-slide images with
 [CLAM](https://github.com/mahmoodlab/CLAM). It's built to be honest about what the model learns, and to run on a laptop plus a free Colab GPU.
 
-> 🚧 Work in progress: the pipeline is complete; results are being produced. See [ROADMAP.md](ROADMAP.md).
+> 🚧 Cross-validation and external-test results are in ([Results](#results)); the sealed internal test is still to come. See [ROADMAP.md](ROADMAP.md).
 > ⚠️ Research and education only. Not a medical device, and not for clinical use.
 
 <p align="center"><a href="https://colab.research.google.com/github/amaansayydd/lung-clam/blob/main/notebooks/lung_clam_colab.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab"></a></p>
@@ -24,7 +24,7 @@ Weakly supervised **Normal / LUAD / LUSC** classification of lung whole-slide im
 | Set | Source | Slides | Patients | Role |
 |---|---|---|---|---|
 | CPTAC LUAD / LUSC / Normal | [NCI Imaging Data Commons](https://portal.imaging.datacommons.cancer.gov/) (CPTAC-LUAD, CPTAC-LSCC) | 150 / 150 / 150 | 300 | 5-fold CV (240 patients) + sealed internal test (60 patients) |
-| TCGA LUAD / LUSC (FFPE diagnostic) | IDC (TCGA-LUAD, TCGA-LUSC) | 60 / 60 | 120, 68 hospitals | external test |
+| TCGA LUAD / LUSC (FFPE diagnostic) | [GDC](https://portal.gdc.cancer.gov/) original Aperio `.svs` (IDC's TCGA copies are JPEG 2000 DICOM, which OpenSlide can't read) | 60 / 60 | 120, 68 hospitals | external test |
 
 The list of slides is fixed in [`manifests/slides.csv`](manifests/slides.csv), built by [`scripts/01_build_manifest.py`](scripts/01_build_manifest.py) with seed 42. Findings about the data are in [`docs/data_findings.md`](docs/data_findings.md).
 
@@ -77,7 +77,62 @@ uv run --group dev pytest                             # patient-leakage tests
 
 ## Results
 
-*Coming soon.* Every number will be generated from the prediction files committed under `results/runs/`.
+All numbers below come from the prediction files committed under [`results/runs/`](results/runs) via [`scripts/30_evaluate.py`](scripts/30_evaluate.py) (full table: [`results/tables/metrics.md`](results/tables/metrics.md)). Brackets are 95% CIs from a patient-level bootstrap. Features: Phikon.
+
+**In one sentence:** with all labels every MIL model is near-perfect on CPTAC, but the attention models (CLAM, ABMIL) need far fewer labels and are the ones that still work on another hospital's slides.
+
+### Cross-validation: CPTAC, 360 slides, 5 patient-level folds
+
+| Model | Macro AUC | Balanced acc. | Tumour sensitivity | Normal specificity | LUAD vs LUSC AUC |
+|---|---|---|---|---|---|
+| CLAM-SB | 0.993 (0.987–0.998) | 0.958 | 1.000 | 0.992 | 0.988 |
+| CLAM-MB | 0.993 (0.987–0.997) | 0.953 | 1.000 | 0.992 | 0.981 |
+| ABMIL (CLAM without instance clustering) | 0.995 (0.990–0.999) | 0.964 | 1.000 | 0.992 | 0.989 |
+| Max-pool MIL | 0.982 (0.970–0.992) | 0.958 | 0.988 | 0.992 | 0.978 |
+| Mean-pool | 0.992 (0.986–0.997) | 0.939 | 0.988 | 0.992 | 0.980 |
+| *Shortcut detector (colour + size only)* | *0.909 (0.886–0.931)* | *0.775* | *0.950* | *0.850* | *0.843* |
+
+### External test: TCGA, 120 slides from other hospitals, never used for training
+
+TCGA has no matched normal slides here, so the external test is tumour detection and LUAD vs LUSC. Each slide is scored by the 5 fold models.
+
+| Model | LUAD vs LUSC AUC | LUAD vs LUSC balanced acc. | Tumour sensitivity |
+|---|---|---|---|
+| CLAM-SB | 0.981 (0.958–0.997) | 0.883 | 0.975 (0.942–1.000) |
+| CLAM-MB | 0.982 (0.962–0.996) | 0.917 | 0.967 (0.933–0.992) |
+| ABMIL | 0.983 (0.962–0.997) | 0.933 | 0.983 (0.958–1.000) |
+| Max-pool MIL | 0.983 (0.963–0.996) | 0.925 | 0.950 (0.908–0.983) |
+| Mean-pool | 0.951 (0.914–0.980) | 0.850 | **0.800 (0.725–0.867)** |
+| *Shortcut detector* | *0.627 (0.515–0.725)* | *0.508* | *—* |
+
+### Label efficiency
+
+<p align="center"><img src="results/figures/label_efficiency.png" width="640" alt="Macro AUC against the share of training labels for CLAM-SB, ABMIL and mean-pool"></p>
+
+| LUAD vs LUSC AUC | 10% labels | 25% | 50% | 100% |
+|---|---|---|---|---|
+| CLAM-SB, CV | 0.912 | 0.965 | 0.972 | 0.988 |
+| Mean-pool, CV | 0.848 | 0.921 | 0.954 | 0.980 |
+| CLAM-SB, TCGA | 0.936 | 0.976 | 0.984 | 0.981 |
+| Mean-pool, TCGA | 0.892 | 0.936 | 0.941 | 0.951 |
+
+### What this shows
+
+1. **Attention matters for label efficiency and for transfer, not for in-distribution accuracy.** With all labels, mean-pooling Phikon features is within 0.001 macro AUC of CLAM-SB. With 10% of the labels CLAM leads by 0.06 LUAD-vs-LUSC AUC, and on TCGA mean-pool calls 1 in 5 tumours normal (sensitivity 0.80 vs 0.975).
+2. **CLAM's instance clustering adds nothing measurable here.** ABMIL, which is CLAM-SB with clustering switched off, matches it within ±0.01 AUC at every label fraction, in CV and on TCGA. With a strong pathology encoder the extra supervision seems redundant.
+3. **The CPTAC data does carry a colour/size signal**, which reaches 0.91 macro AUC in CV. It does not transfer: on TCGA it falls to 0.63, while the MIL models stay at 0.98. They are not relying on it.
+4. **Tumour vs normal is easy; LUAD vs LUSC is where models differ.** Every model separates tumour from normal at AUC ≥ 0.995 in CV.
+
+### Attention heatmaps
+
+<p align="center"><img src="results/heatmaps/clam_sb_phikon/C3N-05079-21_heatmap.jpg" width="820" alt="CPTAC LUSC slide with CLAM-SB attention overlay"></p>
+
+CLAM-SB attention on a CPTAC LUSC slide, scored by the fold model that never saw it (red = high attention). More, including every misclassified slide: [`results/heatmaps/clam_sb_phikon/`](results/heatmaps/clam_sb_phikon) (index in `index.csv`).
+
+### Still to come
+
+- **Sealed internal test** (60 patients): the pre-registered final model, CLAM-SB on Phikon with 3 seeds, is scored on it once, at the end.
+- ResNet50 (ImageNet) vs Phikon on the same splits, and UNI2-h features.
 
 ## Changes to CLAM
 
