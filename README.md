@@ -6,7 +6,7 @@ Weakly supervised **Normal / LUAD / LUSC** classification of lung whole-slide im
 [CLAM](https://github.com/mahmoodlab/CLAM). It's built to be honest about what the model learns, and to run on a laptop plus a free Colab GPU.
 
 > ✅ Cross-validation, external-test and sealed internal-test results are in ([Results](#results)). Next steps: [ROADMAP.md](ROADMAP.md).
-> 📄 [Model card](docs/model_card.md) · [Data card](docs/data_card.md) · [Data findings log](docs/data_findings.md)
+> 📄 [Model card](docs/model_card.md) · [Data card](docs/data_card.md) · [Data findings log](docs/data_findings.md) · [Pathologist review sheet](docs/pathologist_review.md)
 > ⚠️ Research and education only. Not a medical device, and not for clinical use.
 
 <p align="center"><a href="https://colab.research.google.com/github/amaansayydd/lung-clam/blob/main/notebooks/lung_clam_colab.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab"></a></p>

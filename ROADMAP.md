@@ -15,7 +15,9 @@
 - ✅ **All 14 Phikon experiments are trained** on the Mac CPU: 5 MIL models, plus CLAM-SB / ABMIL / mean-pool at 10, 25 and 50% labels. They are scored on 5-fold CV and on the 120-slide TCGA external test. The shortcut detector and heatmaps are done too. See README → Results.
 - ✅ **Sealed internal test, scored once:** macro AUC 0.980 (0.952–0.998) on 90 slides from 60 patients. One test patient (C3L-03678) appears to have swapped tumour/normal labels in the source metadata. This needs a pathologist to confirm; see README → Sealed internal test.
 - ✅ **Rigour and documentation:** paired bootstrap tests between models (`scripts/32_compare.py`), calibration, sealed-test figures and heatmaps, a [model card](docs/model_card.md) and [data card](docs/data_card.md), and CI that re-runs the tests and recomputes every reported number from the committed predictions.
-- ⏭️ **Then:** ResNet50 vs Phikon (needs the ResNet features copied locally, or training on Colab), UNI2-h (access granted; UNI v1 was not), a pathologist review of the heatmaps and of C3L-03678, and the v1.0 release.
+- ✅ **v1.0 released** (2026-11-26) with the final model's checkpoints and `scripts/70_predict.py`.
+- 🔄 **ResNet50 vs Phikon** is training on Colab (features copied from Drive; NumPy 2 fix in the CLAM patch).
+- ⏭️ **Then:** UNI2-h (access granted; UNI v1 was not), and a pathologist review of the heatmaps and of C3L-03678.
 
 ---
 
