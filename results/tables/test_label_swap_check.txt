@@ -1,0 +1,4 @@
+cv: suspected swapped patients: none
+test: suspected swapped patients: ['C3L-03678']
+  as recorded: macro_auc 0.980 (0.952–0.998), balanced_acc 0.900 (0.828–0.962), tumor_vs_normal_auc 0.987 (0.954–1.000), tumor_sensitivity 0.967 (0.917–1.000), normal_specificity 0.967 (0.893–1.000), luad_vs_lusc_auc 0.970 (0.931–0.997)
+  labels swapped back: macro_auc 0.990 (0.977–0.999), balanced_acc 0.922 (0.869–0.968), tumor_vs_normal_auc 1.000 (1.000–1.000), tumor_sensitivity 0.983 (0.950–1.000), normal_specificity 1.000 (1.000–1.000), luad_vs_lusc_auc 0.971 (0.934–0.997)

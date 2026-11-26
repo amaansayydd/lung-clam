@@ -3,7 +3,7 @@
 Weakly supervised **Normal / LUAD / LUSC** classification of lung whole-slide images with
 [CLAM](https://github.com/mahmoodlab/CLAM). It's built to be honest about what the model learns, and to run on a laptop plus a free Colab GPU.
 
-> 🚧 Cross-validation and external-test results are in ([Results](#results)); the sealed internal test is still to come. See [ROADMAP.md](ROADMAP.md).
+> ✅ Cross-validation, external-test and sealed internal-test results are in ([Results](#results)). Next steps: [ROADMAP.md](ROADMAP.md).
 > ⚠️ Research and education only. Not a medical device, and not for clinical use.
 
 <p align="center"><a href="https://colab.research.google.com/github/amaansayydd/lung-clam/blob/main/notebooks/lung_clam_colab.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab"></a></p>
@@ -81,6 +81,21 @@ All numbers below come from the prediction files committed under [`results/runs/
 
 **In one sentence:** with all labels every MIL model is near-perfect on CPTAC, but the attention models (CLAM, ABMIL) need far fewer labels and are the ones that still work on another hospital's slides.
 
+### Sealed internal test: 60 held-out CPTAC patients, 90 slides, scored once
+
+The final model was fixed before the test set was opened: CLAM-SB on Phikon, 3 seeds × 5 folds, with the 15 models' probabilities averaged ([config](configs/experiments/final_clam_sb_phikon.yaml)).
+
+| | Macro AUC | Balanced acc. | Tumour vs normal AUC | Tumour sensitivity | Normal specificity | LUAD vs LUSC AUC |
+|---|---|---|---|---|---|---|
+| **Test, pre-registered** | **0.980 (0.952–0.998)** | **0.900 (0.828–0.962)** | 0.987 (0.954–1.000) | 0.967 (0.917–1.000) | 0.967 (0.893–1.000) | 0.970 (0.931–0.997) |
+| Same model, CV (360 slides) | 0.996 (0.990–0.999) | 0.969 (0.949–0.986) | 1.000 | 1.000 | 0.992 | 0.988 |
+
+Confusion matrix (rows = recorded label, columns = prediction): Normal 29 / 0 / 1, LUAD 0 / 26 / 4, LUSC 2 / 2 / 26. The test score is a little below CV, as expected for a set that played no part in model choice. Most of the errors are LUAD ↔ LUSC.
+
+**A probable label swap.** For one test patient, C3L-03678, the model calls the "LUSC" slide normal (p = 0.86) and the "Normal" slide LUSC (p = 0.99). Looked at directly, the slide recorded as LUSC is airy lung tissue and the one recorded as Normal is solid tumour, so the two labels look swapped in the source metadata. This is not a pathologist's review. No other patient, in CV or test, shows this pattern. The headline above keeps the labels as recorded. With only this patient's two labels exchanged, macro AUC would be 0.990 and tumour-vs-normal AUC 1.000 ([`scripts/31_label_swap_check.py`](scripts/31_label_swap_check.py), output in [`results/tables/test_label_swap_check.txt`](results/tables/test_label_swap_check.txt)).
+
+<p align="center"><img src="results/figures/label_swap_C3L-03678.jpg" width="640" alt="The two slides of patient C3L-03678: the one recorded as LUSC looks like normal lung, the one recorded as Normal looks like tumour"></p>
+
 ### Cross-validation: CPTAC, 360 slides, 5 patient-level folds
 
 | Model | Macro AUC | Balanced acc. | Tumour sensitivity | Normal specificity | LUAD vs LUSC AUC |
@@ -131,7 +146,6 @@ CLAM-SB attention on a CPTAC LUSC slide, scored by the fold model that never saw
 
 ### Still to come
 
-- **Sealed internal test** (60 patients): the pre-registered final model, CLAM-SB on Phikon with 3 seeds, is scored on it once, at the end.
 - ResNet50 (ImageNet) vs Phikon on the same splits, and UNI2-h features.
 
 ## Changes to CLAM

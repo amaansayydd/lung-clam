@@ -13,8 +13,8 @@
 
 - ✅ **Features for all 570 slides** (ResNet50 + Phikon) were extracted on Colab. TCGA came from the GDC as `.svs`, because IDC's TCGA DICOM is JPEG 2000 and OpenSlide can't read it.
 - ✅ **All 14 Phikon experiments are trained** on the Mac CPU: 5 MIL models, plus CLAM-SB / ABMIL / mean-pool at 10, 25 and 50% labels. They are scored on 5-fold CV and on the 120-slide TCGA external test. The shortcut detector and heatmaps are done too. See README → Results.
-- 🔒 **Sealed internal test:** the final pre-registered model, CLAM-SB on Phikon with 3 seeds, is training. The test set is unsealed only after it finishes.
-- ⏭️ **Then:** ResNet50 vs Phikon (needs the ResNet features copied locally, or training on Colab), UNI2-h (access granted; UNI v1 was not), a pathologist review of the heatmaps, and the v1.0 release.
+- ✅ **Sealed internal test, scored once:** macro AUC 0.980 (0.952–0.998) on 90 slides from 60 patients. One test patient (C3L-03678) appears to have swapped tumour/normal labels in the source metadata. This needs a pathologist to confirm; see README → Sealed internal test.
+- ⏭️ **Then:** ResNet50 vs Phikon (needs the ResNet features copied locally, or training on Colab), UNI2-h (access granted; UNI v1 was not), a pathologist review of the heatmaps and of C3L-03678, and the v1.0 release.
 
 ---
 
