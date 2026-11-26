@@ -97,7 +97,7 @@ index d085ce9..460966f 100755
  def seed_torch(seed=7):
      import random
 diff --git a/utils/core_utils.py b/utils/core_utils.py
-index 6fa925b..03dba16 100755
+index 6fa925b..54cc8fa 100755
 --- a/utils/core_utils.py
 +++ b/utils/core_utils.py
 @@ -9,7 +9,7 @@ from sklearn.preprocessing import label_binarize
@@ -109,6 +109,15 @@ index 6fa925b..03dba16 100755
  
  class Accuracy_Logger(object):
      """Accuracy logger"""
+@@ -63,7 +63,7 @@ class EarlyStopping:
+         self.counter = 0
+         self.best_score = None
+         self.early_stop = False
+-        self.val_loss_min = np.Inf
++        self.val_loss_min = np.inf
+ 
+     def __call__(self, epoch, val_loss, model, ckpt_name = 'checkpoint.pt'):
+ 
 @@ -117,8 +117,8 @@ def train(datasets, cur, args):
      if args.bag_loss == 'svm':
          from topk.svm import SmoothTop1SVM
@@ -192,3 +201,22 @@ index ef4f938..1c6ff07 100644
  
  def score2percentile(score, ref):
      percentile = percentileofscore(ref, score)
+diff --git a/wsi_core/batch_process_utils.py b/wsi_core/batch_process_utils.py
+index 23cc949..b5f1f7f 100755
+--- a/wsi_core/batch_process_utils.py
++++ b/wsi_core/batch_process_utils.py
+@@ -60,10 +60,10 @@ def initialize_df(slides, seg_params, filter_params, vis_params, patch_params,
+ 
+ 	if use_heatmap_args:
+ 		# initiate empty x,y coordinates in case not provided
+-		default_df_dict.update({'x1': np.empty((total)).fill(np.NaN), 
+-			'x2': np.empty((total)).fill(np.NaN), 
+-			'y1': np.empty((total)).fill(np.NaN), 
+-			'y2': np.empty((total)).fill(np.NaN)})
++		default_df_dict.update({'x1': np.empty((total)).fill(np.nan), 
++			'x2': np.empty((total)).fill(np.nan), 
++			'y1': np.empty((total)).fill(np.nan), 
++			'y2': np.empty((total)).fill(np.nan)})
+ 
+ 
+ 	if isinstance(slides, pd.DataFrame):

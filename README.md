@@ -177,6 +177,7 @@ CLAM is a pinned git submodule. Our changes are kept in [`patches/0001-apple-mps
 - smooth-topk's SVM losses are rebuilt after moving them to a device. They capture their label buffer when built, which breaks on MPS.
 - Checkpoints load with `map_location`, and fp16 feature files load as fp32.
 - Labels are mapped in one vectorized step. CLAM's cell-by-cell assignment fails on pandas 3.
+- `np.Inf` / `np.NaN` are replaced with `np.inf` / `np.nan`, which NumPy 2 requires (current Colab ships NumPy 2).
 
 On top of CLAM, this repo adds a mean-pooling baseline, a multi-encoder streaming extractor, and the evaluation code. For the 3-class task CLAM runs with `subtyping=False`: tumour slides contain normal tissue, so the "subtyping" out-of-class instance loss would push the wrong way.
 
