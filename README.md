@@ -65,6 +65,8 @@ uv run python scripts/50_heatmaps.py clam_sb_phikon   # heatmaps → results/hea
 uv run --group dev pytest                             # patient-leakage + metric tests
 ```
 
+**Trained model:** the final model's 15 checkpoints are attached to the [v1.0 release](https://github.com/amaansayydd/lung-clam/releases/tag/v1.0). Unzip them into `$LUNGCLAM_DATA/runs/` and score Phikon feature files with `scripts/70_predict.py final_clam_sb_phikon path/to/*.pt`.
+
 | Script | Does |
 |---|---|
 | `00_explore_idc.py` | inventory of lung slides in IDC |
