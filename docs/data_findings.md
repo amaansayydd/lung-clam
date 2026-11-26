@@ -73,3 +73,13 @@ Produced by `scripts/00_explore_idc.py`; metadata only.
 - **The fix:** TCGA slides are now downloaded from the **GDC** as the original Aperio `.svs` files (open access, all 120 found, 107 GB) and checked against the GDC's md5. OpenSlide reads these natively. See `scripts/02_add_gdc_ids.py`.
 - **Checked:** the level-0 dimensions match IDC's (e.g. TCGA-05-5420: 10000 × 8104), so the manifest's resolution and patch size stay valid. One slide went end to end: 816 patches, finite features.
 - **CPTAC extraction is complete:** 450/450 slides with ResNet50 + Phikon features.
+
+## 2026-11-26: sealed test unsealed, one probable label swap
+
+- **The final model (CLAM-SB on Phikon, 3 seeds × 5 folds) was scored once on the 90 test slides:** macro AUC 0.980 (0.952–0.998).
+- **Patient C3L-03678 looks label-swapped.**
+  - The slide recorded as LUSC (-21) is predicted Normal (p = 0.86), and the slide recorded as Normal (-22) is predicted LUSC (p = 0.99).
+  - On the thumbnails, -21 is airy alveolar lung and -22 is solid tumour with squamous-looking nests ([`results/figures/label_swap_C3L-03678.jpg`](../results/figures/label_swap_C3L-03678.jpg)).
+  - No other patient in CV or test shows this "both slides wrong in opposite directions" pattern ([`scripts/31_label_swap_check.py`](../scripts/31_label_swap_check.py)).
+  - The reported test result keeps the recorded labels. The pathologist review should confirm or reject the swap.
+- **C3N-02435-22 (LUSC, predicted Normal) is a different case.** Its normal slide is predicted correctly, and the tumour slide is mostly pale parenchyma with little visible tumour. It is probably a tumour-poor section, not a swap.

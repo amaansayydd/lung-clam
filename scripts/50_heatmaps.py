@@ -13,6 +13,9 @@ for every class, the most confident correct, the least confident correct, and ev
 
   uv run python scripts/50_heatmaps.py clam_sb_phikon
   uv run python scripts/50_heatmaps.py clam_sb_phikon --slides C3L-00422-22 --no-patches
+  uv run python scripts/50_heatmaps.py final_clam_sb_phikon --splits test --no-patches   # after unsealing
+
+Sealed-test slides are explained by fold 0 (no fold model trained on them).
 """
 import argparse
 import importlib.util
@@ -105,6 +108,7 @@ def main():
     ap.add_argument("--seed", default="s1")
     ap.add_argument("--per-bucket", type=int, default=1)
     ap.add_argument("--max-errors", type=int, default=3)
+    ap.add_argument("--splits", nargs="+", default=["val", "external"], choices=["val", "external", "test"])
     ap.add_argument("--no-patches", action="store_true", help="skip galleries (no slide download needed)")
     args = ap.parse_args()
 
@@ -114,7 +118,7 @@ def main():
         raise SystemExit(f"{cfg['model']} has no attention to visualize")
     preds = pd.concat(pd.read_csv(f).assign(fold=int(f.stem[-1]))
                       for f in sorted((run_dir / args.seed).glob("preds_fold*.csv")))
-    preds = preds[preds.split.isin(["val", "external"])]
+    preds = preds[preds.split.isin(args.splits)]
     oof_fold = preds[preds.split == "val"].set_index("slide_id").fold.to_dict()
     preds = preds[(preds.split == "val") | (preds.fold == preds.fold.min())]
     chosen = preds[preds.slide_id.isin(args.slides)] if args.slides else \
@@ -132,7 +136,7 @@ def main():
             train.use_meanpool(False)
             models[k] = train.eval_utils.initiate_model(ca, str(run_dir / args.seed / f"s_{k}_checkpoint.pt"))
         probs = np.array([getattr(r, f"p_{c}") for c in CLASSES])
-        pred = int(probs.argmax()) if r.split == "val" else (2 if r.p_LUSC > r.p_LUAD else 1)
+        pred = int(probs.argmax()) if r.split != "external" else (2 if r.p_LUSC > r.p_LUAD else 1)
         feats = load_features(paths.feature_dir(cfg["encoder"]) / f"{r.slide_id}.pt")
         coords = coords_of(paths.PATCHES / f"{r.slide_id}.h5")
         scores = attention(models[k], feats, pred)

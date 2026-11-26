@@ -1,0 +1,30 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  tests:
+    name: leakage + metric tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: pip install numpy==1.26.4 pandas==2.3.3 scikit-learn==1.7.2 pyyaml==6.0.3 tabulate==0.10.0 pytest==9.1.1
+      - run: pytest -q
+
+  reproduce:
+    name: every reported number recomputes from the committed predictions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: pip install numpy==1.26.4 pandas==2.3.3 scikit-learn==1.7.2 pyyaml==6.0.3 tabulate==0.10.0
+      - run: python scripts/30_evaluate.py --unseal > /dev/null
+      - run: git diff --exit-code results/tables/metrics.md

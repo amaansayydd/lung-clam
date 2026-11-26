@@ -4,6 +4,8 @@
   results/figures/label_efficiency.png    CV macro AUC vs % of training labels (CLAM-SB, ABMIL, mean pooling)
   results/figures/confusion_<exp>.png     out-of-fold confusion matrix
   results/figures/roc_<exp>.png           CV one-vs-rest ROC + external LUAD-vs-LUSC ROC
+  results/figures/test_<exp>.png          sealed internal test: confusion matrix + ROC (only if it was unsealed)
+  results/figures/calibration_<exp>.png   reliability diagram (CV, test, external) with expected calibration error
 
   uv run python scripts/60_figures.py --main clam_sb_phikon
 """
@@ -114,12 +116,9 @@ def label_efficiency(tab: pd.DataFrame, out: Path, encoder="phikon"):
     plt.close(fig)
 
 
-def confusion(name: str, out: Path):
-    p = ev.load_preds(name)
-    cv = ev.average(p[p.split == "val"])
-    cm_ = M.confusion(cv)
+def draw_confusion(ax, df, title):
+    cm_ = M.confusion(df)
     cmap = LinearSegmentedColormap.from_list("seq", ["#f1f6fd", SERIES[0], "#143d70"])
-    fig, ax = plt.subplots(figsize=(4.6, 4.0))
     ax.imshow(cm_ / cm_.sum(1, keepdims=True), cmap=cmap, vmin=0, vmax=1)
     for i in range(3):
         for j in range(3):
@@ -131,9 +130,70 @@ def confusion(name: str, out: Path):
     ax.set_xlabel("Predicted")
     ax.set_ylabel("True")
     ax.grid(False)
-    ax.set_title(f"Out-of-fold confusion ({len(cv)} slides)", fontsize=11)
+    ax.set_title(title, fontsize=11)
+
+
+def confusion(name: str, out: Path):
+    p = ev.load_preds(name)
+    cv = ev.average(p[p.split == "val"])
+    fig, ax = plt.subplots(figsize=(4.6, 4.0))
+    draw_confusion(ax, cv, f"Out-of-fold confusion ({len(cv)} slides)")
     fig.tight_layout()
     fig.savefig(out / f"confusion_{name}.png", dpi=200)
+    plt.close(fig)
+
+
+def test_figure(name: str, out: Path):
+    """Sealed internal test: ensemble confusion matrix and one-vs-rest ROC."""
+    p = ev.load_preds(name)
+    te = ev.average(p[p.split == "test"])
+    if te.empty:
+        return
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(9.2, 4.2))
+    draw_confusion(a1, te, f"Sealed test confusion ({len(te)} slides)")
+    for c, (k, cls) in zip(SERIES, enumerate(M.CLASSES)):
+        fpr, tpr, _ = roc_curve(te.label == k, te[f"p_{cls}"])
+        a2.plot(fpr, tpr, color=c, lw=2, label=f"{cls} vs rest (AUC {area(fpr, tpr):.3f})")
+    a2.plot([0, 1], [0, 1], color=GRID, lw=1, ls="--")
+    a2.set_xlabel("False positive rate")
+    a2.set_ylabel("True positive rate")
+    a2.set_aspect("equal")
+    a2.legend(loc="lower right", fontsize=8.5)
+    a2.set_title("Sealed test ROC")
+    fig.tight_layout()
+    fig.savefig(out / f"test_{name}.png", dpi=200)
+    plt.close(fig)
+
+
+def calibration(name: str, out: Path, bins: int = 10):
+    """Reliability diagram: confidence of the predicted class vs how often it is right."""
+    p = ev.load_preds(name)
+    sets = [("CPTAC CV", ev.average(p[p.split == "val"])), ("Sealed test", ev.average(p[p.split == "test"])),
+            ("TCGA external", ev.average(p[p.split == "external"]))]
+    sets = [(n, d) for n, d in sets if len(d)]
+    fig, ax = plt.subplots(figsize=(5.2, 4.6))
+    ax.plot([0, 1], [0, 1], color=GRID, lw=1, ls="--")
+    for c, (lbl, d) in zip(SERIES, sets):
+        if lbl.startswith("TCGA"):  # no Normal class: restrict to the LUAD/LUSC decision
+            d = d.copy()
+            s = d.p_LUAD + d.p_LUSC + 1e-12
+            d["p_Normal"], d["p_LUAD"], d["p_LUSC"] = 0.0, d.p_LUAD / s, d.p_LUSC / s
+        pr = d[M.PROB].to_numpy()
+        conf, correct = pr.max(1), (pr.argmax(1) == d.label.to_numpy())
+        # equal-count bins (5 per set) so every point averages the same number of slides
+        order = np.argsort(conf)
+        chunks = np.array_split(order, 5)
+        xs, ys = [conf[c].mean() for c in chunks], [correct[c].mean() for c in chunks]
+        ece = M.expected_calibration_error(d, bins)
+        ax.plot(xs, ys, "-o", color=c, lw=2, ms=5, mec=SURFACE, mew=1.5, label=f"{lbl} (ECE {ece:.3f}, n={len(d)})")
+    ax.set_xlim(0.5, 1.01)
+    ax.set_ylim(0.5, 1.01)
+    ax.set_xlabel("Predicted confidence")
+    ax.set_ylabel("Observed accuracy")
+    ax.set_title("Calibration (5 equal-count bins per set)")
+    ax.legend(loc="lower right", fontsize=8.5)
+    fig.tight_layout()
+    fig.savefig(out / f"calibration_{name}.png", dpi=200)
     plt.close(fig)
 
 
@@ -168,6 +228,7 @@ def roc(name: str, out: Path):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--main", default="clam_sb_phikon", help="experiment for confusion matrix and ROC")
+    ap.add_argument("--final", default="final_clam_sb_phikon", help="experiment for the sealed-test and calibration figures")
     args = ap.parse_args()
     tab = pd.read_csv(paths.RESULTS / "tables" / "metrics.csv")
     out = paths.RESULTS / "figures"
@@ -177,6 +238,9 @@ def main():
     if (paths.RESULTS / "runs" / args.main).exists():
         confusion(args.main, out)
         roc(args.main, out)
+    if (paths.RESULTS / "runs" / args.final).exists():
+        test_figure(args.final, out)
+        calibration(args.final, out)
     print("figures:", ", ".join(sorted(p.name for p in out.glob("*.png"))))
 
 
