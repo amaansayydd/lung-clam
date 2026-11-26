@@ -79,6 +79,7 @@ uv run --group dev pytest                             # patient-leakage + metric
 | `40_shortcut_baseline.py` | colour-and-size-only classifiers on the same folds |
 | `50_heatmaps.py` | attention heatmaps + top-patch galleries |
 | `60_figures.py` | README figures |
+| `70_predict.py` | score new slides' feature files with every checkpoint of an experiment (e.g. the released final model) |
 
 ## Results
 

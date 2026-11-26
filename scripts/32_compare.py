@@ -32,8 +32,12 @@ def pairs() -> list[tuple[str, str]]:
     for lf in ["_lf10", "_lf25", "_lf50", ""]:
         out += [(f"clam_sb_phikon{lf}", f"meanpool_phikon{lf}"), (f"clam_sb_phikon{lf}", f"abmil_phikon{lf}")]
     out += [("clam_sb_phikon", "clam_mb_phikon"), ("clam_sb_phikon", "maxmil_phikon"),
-            ("abmil_phikon", "meanpool_phikon")]
-    return out
+            ("abmil_phikon", "meanpool_phikon"),
+            # encoder comparison: pathology foundation model vs ImageNet ResNet50, same model and splits
+            ("clam_sb_phikon", "clam_sb_resnet"), ("meanpool_phikon", "meanpool_resnet"),
+            ("clam_sb_resnet", "meanpool_resnet")]
+    have = {d.name for d in (paths.RESULTS / "runs").iterdir()}
+    return [(a, b) for a, b in out if a in have and b in have]
 
 
 def paired_bootstrap(a: pd.DataFrame, b: pd.DataFrame, metric, n: int = 1000, seed: int = 0) -> dict:
