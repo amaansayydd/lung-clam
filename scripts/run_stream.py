@@ -12,9 +12,11 @@ Examples:
   uv run python scripts/run_stream.py --group cptac                 # everything for training
   uv run python scripts/run_stream.py --encoders resnet50_trunc phikon --limit 5
   caffeinate -i uv run python scripts/run_stream.py                 # all 570, keep the Mac awake
+  uv run python scripts/run_stream.py --idc-source gcs              # download from IDC's Google Cloud copy
 """
 import argparse
 import csv
+import functools
 import shutil
 import sys
 import time
@@ -35,6 +37,7 @@ from lungclam.slides import open_wsi, save_qc_and_stats, segment_and_patch  # no
 
 STATUS_FIELDS = ["time", "slide_id", "status", "n_patches", "seconds", "patches_per_s", "detail"]
 SAFETY_GB = 2.0
+IDC_SOURCE = "aws"  # IDC mirrors every file on AWS and Google Cloud; --idc-source picks one
 
 
 def log_status(row: dict) -> None:
@@ -84,6 +87,38 @@ def download_gdc(row, attempts: int = 3) -> None:
     raise RuntimeError(f"GDC download failed for {row.slide_id}: {err}")
 
 
+@functools.cache
+def idc_client():
+    from idc_index import IDCClient
+    return IDCClient()
+
+
+def idc_incomplete(client, series: list[str]) -> list[str]:
+    """Series whose folder does not yet hold every DICOM instance (s5cmd keeps partial files under a temp name)."""
+    want = client.index.set_index("SeriesInstanceUID").instanceCount
+    return [s for s in series
+            if len(list((paths.RAW / s).glob("*.dcm"))) < want[s] or any((paths.RAW / s).glob("*.dcm?*"))]
+
+
+def download_idc(series: list[str], attempts: int = 3) -> None:
+    """CPTAC series from IDC. idc-index only logs failed transfers, so completeness is checked here."""
+    client = idc_client()
+    todo = series
+    for attempt in range(1, attempts + 1):
+        for s in todo:  # drop half-written files left by an interrupted transfer
+            for f in (paths.RAW / s).glob("*.dcm?*"):
+                f.unlink()
+        client.download_from_selection(seriesInstanceUID=todo, downloadDir=str(paths.RAW),
+                                       dirTemplate="%SeriesInstanceUID", quiet=True, show_progress_bar=False,
+                                       use_s5cmd_sync=attempt > 1, source_bucket_location=IDC_SOURCE)
+        todo = idc_incomplete(client, todo)
+        if not todo:
+            return
+        print(f"  IDC download attempt {attempt}: {len(todo)} series incomplete; retrying", flush=True)
+        time.sleep(10 * attempt)
+    # leave them incomplete: process() refuses to read them, and the next run tries again
+
+
 def download(rows: pd.DataFrame) -> None:
     need = rows.size_mb.sum() / 1024
     if free_gb(paths.RAW) - need < SAFETY_GB:
@@ -91,10 +126,7 @@ def download(rows: pd.DataFrame) -> None:
                       f"have {free_gb(paths.RAW):.1f} GB free at {paths.RAW}")
     from_gdc = rows.source_uri.str.startswith("gdc://")
     if (~from_gdc).any():
-        from idc_index import IDCClient
-        IDCClient().download_from_selection(seriesInstanceUID=rows[~from_gdc].series_uid.tolist(),
-                                            downloadDir=str(paths.RAW), dirTemplate="%SeriesInstanceUID",
-                                            quiet=True, show_progress_bar=False)
+        download_idc(rows[~from_gdc].series_uid.tolist())
     for r in rows[from_gdc].itertuples():
         download_gdc(r)
 
@@ -103,9 +135,19 @@ def process(row, encoders: dict, device, keep_raw: bool) -> dict:
     series_dir = paths.RAW / row.series_uid
     t0 = time.time()
     try:
+        if row.source_uri.startswith("idc://"):
+            if idc_incomplete(idc_client(), [row.series_uid]):
+                return {"status": "failed", "detail": "incomplete download", "n_patches": 0}
         wsi = open_wsi(series_dir, row.slide_id)
-        h5_path, n = segment_and_patch(wsi, int(row.patch_px), paths.PATCHES)
-        save_qc_and_stats(wsi, row.slide_id, float(row.mpp), n, paths.THUMBS, paths.STATS)
+        h5_path = paths.PATCHES / f"{row.slide_id}.h5"
+        if h5_path.exists() and (paths.STATS / f"{row.slide_id}.json").exists():
+            # keep the existing patch grid, so every encoder sees exactly the same patches
+            import h5py
+            with h5py.File(h5_path, "r") as f:
+                n = len(f["coords"])
+        else:
+            h5_path, n = segment_and_patch(wsi, int(row.patch_px), paths.PATCHES)
+            save_qc_and_stats(wsi, row.slide_id, float(row.mpp), n, paths.THUMBS, paths.STATS)
         if n == 0:
             return {"status": "failed", "detail": "no tissue found", "n_patches": 0}
         todo = {name: m for name, m in encoders.items()
@@ -130,7 +172,11 @@ def main():
     ap.add_argument("--limit", type=int, help="process at most this many slides")
     ap.add_argument("--batch", type=int, default=3, help="slides per download batch")
     ap.add_argument("--keep-raw", action="store_true", help="do not delete raw slides after processing")
+    ap.add_argument("--idc-source", choices=["aws", "gcs"], default="aws",
+                    help="IDC bucket to download CPTAC slides from (use whichever is faster from where you are)")
     args = ap.parse_args()
+    global IDC_SOURCE
+    IDC_SOURCE = args.idc_source
 
     m = pd.read_csv(paths.MANIFEST)
     if args.pilot:
